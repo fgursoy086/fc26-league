@@ -18,10 +18,11 @@ export default function Register() {
     if (form.password !== form.confirm_password) return toast.error('Şifreler eşleşmiyor!')
     if (form.password.length < 6) return toast.error('Şifre en az 6 karakter olmalı!')
     if (form.username.length < 3) return toast.error('Kullanıcı adı en az 3 karakter olmalı!')
+    if (!form.platform_id.trim()) return toast.error('Platform ID giriniz!')
 
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
@@ -31,13 +32,33 @@ export default function Register() {
             platform: form.platform,
             platform_id: form.platform_id,
             position: form.position,
-          },
-          emailRedirectTo: `${window.location.origin}/dashboard`
+          }
+          // emailRedirectTo kaldırıldı — e-posta onayı Supabase'den kapatılmalı
         }
       })
       if (error) throw error
-      toast.success('Kayıt başarılı! E-posta adresinizi onaylayın.')
-      navigate('/login')
+
+      // Eğer kullanıcı hemen oturumu açtıysa (e-posta onayı kapalıysa) profil oluştur
+      if (data?.user && data?.session) {
+        // Trigger çalışmamış olabilir, manuel profil oluştur
+        const { error: profileError } = await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: form.email,
+          full_name: form.full_name,
+          username: form.username,
+          platform: form.platform,
+          platform_id: form.platform_id,
+          position: form.position,
+        }, { onConflict: 'id' })
+
+        if (profileError) console.warn('Profile upsert:', profileError.message)
+        toast.success('Kayıt başarılı! Hoş geldiniz.')
+        navigate('/dashboard')
+      } else {
+        // E-posta onayı açıksa
+        toast.success('Kayıt başarılı! E-posta adresinizi onaylayın, ardından giriş yapın.')
+        navigate('/login')
+      }
     } catch (err) {
       toast.error(err.message)
     } finally {

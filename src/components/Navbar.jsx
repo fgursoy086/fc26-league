@@ -46,7 +46,10 @@ export default function Navbar() {
           <span className="nav-avatar">{profile?.full_name?.[0]?.toUpperCase()}</span>
           <span className="nav-username">@{profile?.username}</span>
         </Link>
-        <button className="nav-logout" onClick={handleLogout} title="Çıkış">⏻</button>
+        <button className="nav-logout" onClick={handleLogout} title="Çıkış Yap">
+          <span className="logout-icon">⏻</span>
+          <span className="logout-text">Çıkış</span>
+        </button>
         <button className="nav-burger" onClick={() => setMenuOpen(!menuOpen)}>☰</button>
       </div>
     </nav>
