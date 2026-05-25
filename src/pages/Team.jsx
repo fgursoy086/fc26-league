@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { supabase, POSITIONS, PLATFORMS } from '../../lib/supabase'
+import { supabase, POSITIONS, PLATFORMS } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
 

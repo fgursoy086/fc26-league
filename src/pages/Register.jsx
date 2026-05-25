@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase, POSITIONS, PLATFORMS, PLATFORM_ID_LABELS } from '../../lib/supabase'
+import { supabase, POSITIONS, PLATFORMS, PLATFORM_ID_LABELS } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 export default function Register() {

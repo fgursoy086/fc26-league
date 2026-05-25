@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase, POSITIONS, PLATFORMS } from '../../lib/supabase'
+import { supabase, POSITIONS, PLATFORMS } from '../lib/supabase'
 
 export function Standings() {
   const [teams, setTeams] = useState([])

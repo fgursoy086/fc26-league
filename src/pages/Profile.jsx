@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { supabase, POSITIONS, PLATFORMS, PLATFORM_ID_LABELS } from '../../lib/supabase'
+import { supabase, POSITIONS, PLATFORMS, PLATFORM_ID_LABELS } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
 

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { POSITIONS, PLATFORMS } from '../../lib/supabase'
+import { POSITIONS, PLATFORMS } from '../lib/supabase'
 
 export default function Dashboard() {
   const { profile, refreshProfile } = useAuth()
