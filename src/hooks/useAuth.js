@@ -9,7 +9,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Timeout - 5 saniye sonra hala loading ise zorla kapat
     const timeout = setTimeout(() => setLoading(false), 5000)
 
     supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -33,14 +32,26 @@ export function AuthProvider({ children }) {
 
   async function fetchProfile(userId) {
     try {
-      const { data, error } = await supabase
+      // Önce teams join ile dene
+      let { data, error } = await supabase
         .from('profiles')
         .select('*, teams(*)')
         .eq('id', userId)
         .single()
-      if (!error) setProfile(data)
+
+      // Hata varsa join olmadan dene
+      if (error || !data) {
+        const res2 = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        data = res2.data
+      }
+
+      if (data) setProfile(data)
     } catch (e) {
-      console.error(e)
+      console.error('fetchProfile error:', e)
     } finally {
       setLoading(false)
     }
