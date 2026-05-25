@@ -25,6 +25,7 @@ export default function CreateTeam() {
     if (!teamName.trim()) return toast.error('Takım adı boş olamaz!')
     if (profile?.team_id) return toast.error('Zaten bir takımdasınız!')
 
+    if (!profile?.id) return toast.error('Profil yüklenemedi, sayfayı yenileyin.')
     setLoading(true)
     try {
       let logo_url = null
@@ -32,9 +33,9 @@ export default function CreateTeam() {
       if (logoFile) {
         const ext = logoFile.name.split('.').pop()
         const fileName = `${Date.now()}_${profile.id}.${ext}`
-        const { error: uploadErr } = await supabase.storage
+        const { error: uploadErr, data: uploadData } = await supabase.storage
           .from('team-logos')
-          .upload(fileName, logoFile)
+          .upload(fileName, logoFile, { upsert: true })
         if (uploadErr) throw uploadErr
         const { data } = supabase.storage.from('team-logos').getPublicUrl(fileName)
         logo_url = data.publicUrl
