@@ -9,56 +9,67 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const timeout = setTimeout(() => setLoading(false), 5000)
+    let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) { clearTimeout(timeout); setLoading(false); return }
-      setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else { clearTimeout(timeout); setLoading(false) }
-    }).catch(() => { clearTimeout(timeout); setLoading(false) })
+    async function init() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!mounted) return
+        
+        if (session?.user) {
+          setUser(session.user)
+          await loadProfile(session.user.id, mounted)
+        }
+      } catch(e) {
+        console.error(e)
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null)
-      if (session?.user) await fetchProfile(session.user.id)
-      else {
+    init()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
         setProfile(null)
         setLoading(false)
+        return
       }
+      if (session?.user) {
+        setUser(session.user)
+        await loadProfile(session.user.id, mounted)
+      }
+      setLoading(false)
     })
 
-    return () => { subscription.unsubscribe(); clearTimeout(timeout) }
+    return () => { mounted = false; subscription.unsubscribe() }
   }, [])
 
-  async function fetchProfile(userId) {
+  async function loadProfile(userId, mounted = true) {
     try {
-      // Önce teams join ile dene
-      let { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*, teams(*)')
         .eq('id', userId)
         .single()
-
-      // Hata varsa join olmadan dene
-      if (error || !data) {
-        const res2 = await supabase
+      if (mounted && data) setProfile(data)
+    } catch(e) {
+      // teams join olmadan tekrar dene
+      try {
+        const { data } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .single()
-        data = res2.data
-      }
-
-      if (data) setProfile(data)
-    } catch (e) {
-      console.error('fetchProfile error:', e)
-    } finally {
-      setLoading(false)
+        if (mounted && data) setProfile(data)
+      } catch(e2) { console.error(e2) }
     }
   }
 
   async function refreshProfile() {
-    if (user) await fetchProfile(user.id)
+    if (user?.id) await loadProfile(user.id)
   }
 
   return (
@@ -69,4 +80,5 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext)
+
 
