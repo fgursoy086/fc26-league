@@ -17,13 +17,15 @@ import './styles.css'
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="loading-screen"><div className="spinner">⚽</div></div>
-  return user ? children : <Navigate to="/login" />
+  if (!user) return <Navigate to="/login" replace />
+  return children
 }
 
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <div className="loading-screen"><div className="spinner">⚽</div></div>
-  return !user ? children : <Navigate to="/dashboard" />
+  if (user) return <Navigate to="/dashboard" replace />
+  return children
 }
 
 function AppLayout({ children }) {
@@ -38,12 +40,11 @@ function AppLayout({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
       <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-
       <Route path="/dashboard" element={<PrivateRoute><AppLayout><Dashboard /></AppLayout></PrivateRoute>} />
       <Route path="/team/create" element={<PrivateRoute><AppLayout><CreateTeam /></AppLayout></PrivateRoute>} />
       <Route path="/team/squad" element={<PrivateRoute><AppLayout><SquadPage /></AppLayout></PrivateRoute>} />
