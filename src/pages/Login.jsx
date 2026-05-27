@@ -17,7 +17,7 @@ export default function Login() {
         password: form.password,
       })
       if (error) throw error
-      navigate('/dashboard')
+      setTimeout(() => navigate('/dashboard'), 500)
     } catch (err) {
       toast.error(err.message === 'Invalid login credentials' ? 'E-posta veya şifre hatalı!' : err.message)
     } finally {
