@@ -8,34 +8,46 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fallback = setTimeout(() => setLoading(false), 3000)
+  async function loadProfile(u) {
+    try {
+      const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single()
+      if (data) setProfile(data)
+    } catch(e) {}
+  }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      clearTimeout(fallback)
-      if (event === 'SIGNED_OUT' || !session) {
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-        return
+  useEffect(() => {
+    // Her durumda 4 saniye sonra loading'i kapat
+    const fallback = setTimeout(() => setLoading(false), 4000)
+
+    // Önce mevcut oturumu kontrol et
+    supabase.auth.getSession().then(async ({ data }) => {
+      const u = data?.session?.user
+      if (u) {
+        setUser(u)
+        await loadProfile(u)
       }
-      const u = session.user
-      setUser(u)
-      try {
-        const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single()
-        if (data) setProfile(data)
-      } catch(e) {}
+      clearTimeout(fallback)
+      setLoading(false)
+    }).catch(() => {
+      clearTimeout(fallback)
       setLoading(false)
     })
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data?.session) {
-        clearTimeout(fallback)
+    // Sonra değişiklikleri dinle (giriş/çıkış)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user)
+        await loadProfile(session.user)
+        setLoading(false)
+      }
+      if (event === 'SIGNED_OUT') {
+        setUser(null)
+        setProfile(null)
         setLoading(false)
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => { subscription.unsubscribe(); clearTimeout(fallback) }
   }, [])
 
   async function refreshProfile() {
