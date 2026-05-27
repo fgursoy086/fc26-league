@@ -9,67 +9,32 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
+    const fallback = setTimeout(() => setLoading(false), 3000)
 
-    async function init() {
-      try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!mounted) return
-        
-        if (session?.user) {
-          setUser(session.user)
-          await loadProfile(session.user.id, mounted)
-        }
-      } catch(e) {
-        console.error(e)
-      } finally {
-        if (mounted) setLoading(false)
-      }
-    }
-
-    init()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return
-      if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setProfile(null)
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data?.session?.user
+      setUser(u || null)
+      if (u) {
+        supabase.from('profiles').select('*').eq('id', u.id).single()
+          .then(({ data: p }) => { if (p) setProfile(p) })
+          .finally(() => { clearTimeout(fallback); setLoading(false) })
+      } else {
+        clearTimeout(fallback)
         setLoading(false)
-        return
       }
-      if (session?.user) {
-        setUser(session.user)
-        await loadProfile(session.user.id, mounted)
-      }
-      setLoading(false)
+    }).catch(() => { clearTimeout(fallback); setLoading(false) })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') { setUser(null); setProfile(null); setLoading(false) }
     })
 
-    return () => { mounted = false; subscription.unsubscribe() }
+    return () => subscription.unsubscribe()
   }, [])
 
-  async function loadProfile(userId, mounted = true) {
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('*, teams(*)')
-        .eq('id', userId)
-        .single()
-      if (mounted && data) setProfile(data)
-    } catch(e) {
-      // teams join olmadan tekrar dene
-      try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single()
-        if (mounted && data) setProfile(data)
-      } catch(e2) { console.error(e2) }
-    }
-  }
-
   async function refreshProfile() {
-    if (user?.id) await loadProfile(user.id)
+    if (!user) return
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    if (data) setProfile(data)
   }
 
   return (
