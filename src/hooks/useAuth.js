@@ -11,21 +11,28 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const fallback = setTimeout(() => setLoading(false), 3000)
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      clearTimeout(fallback)
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+        return
+      }
+      const u = session.user
+      setUser(u)
+      try {
+        const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single()
+        if (data) setProfile(data)
+      } catch(e) {}
+      setLoading(false)
+    })
+
     supabase.auth.getSession().then(({ data }) => {
-      const u = data?.session?.user
-      setUser(u || null)
-      if (u) {
-        supabase.from('profiles').select('*').eq('id', u.id).single()
-          .then(({ data: p }) => { if (p) setProfile(p) })
-          .finally(() => { clearTimeout(fallback); setLoading(false) })
-      } else {
+      if (!data?.session) {
         clearTimeout(fallback)
         setLoading(false)
       }
-    }).catch(() => { clearTimeout(fallback); setLoading(false) })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') { setUser(null); setProfile(null); setLoading(false) }
     })
 
     return () => subscription.unsubscribe()
@@ -45,4 +52,3 @@ export function AuthProvider({ children }) {
 }
 
 export const useAuth = () => useContext(AuthContext)
-
